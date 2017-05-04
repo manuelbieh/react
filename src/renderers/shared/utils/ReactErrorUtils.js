@@ -76,15 +76,6 @@ let rethrowCaughtError = function() {
   }
 };
 
-/**
- * Call a function while guarding against errors that happens within it.
- * Returns an error if it throws, otherwise null.
- *
- * @param {String} name of the guard to use for logging or debugging
- * @param {Function} func The function to invoke
- * @param {*} context The context to use when calling the function
- * @param {...*} args Arguments for function
- */
 const ReactErrorUtils = {
   injection: {
     injectErrorUtils(injectedErrorUtils: Object) {
@@ -92,15 +83,19 @@ const ReactErrorUtils = {
         typeof injectedErrorUtils.invokeGuardedCallback === 'function',
         'Injected invokeGuardedCallback() must be a function.',
       );
-      invariant(
-        typeof injectedErrorUtils.rethrowCaughtError === 'function',
-        'Injected rethrowCaughtError() must be a function.',
-      );
       invokeGuardedCallback = injectedErrorUtils.invokeGuardedCallback;
-      rethrowCaughtError = injectedErrorUtils.rethrowCaughtError;
     },
   },
 
+  /**
+   * Call a function while guarding against errors that happens within it.
+   * Returns an error if it throws, otherwise null.
+   *
+   * @param {String} name of the guard to use for logging or debugging
+   * @param {Function} func The function to invoke
+   * @param {*} context The context to use when calling the function
+   * @param {...*} args Arguments for function
+   */
   invokeGuardedCallback: function<A, B, C, D, E, F, Context>(
     name: string | null,
     func: (a: A, b: B, c: C, d: D, e: E, f: F) => void,

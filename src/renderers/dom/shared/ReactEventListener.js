@@ -12,7 +12,6 @@
 'use strict';
 
 var EventListener = require('fbjs/lib/EventListener');
-var ExecutionEnvironment = require('fbjs/lib/ExecutionEnvironment');
 var PooledClass = require('PooledClass');
 var ReactDOMComponentTree = require('ReactDOMComponentTree');
 var ReactGenericBatching = require('ReactGenericBatching');
@@ -111,8 +110,6 @@ var ReactEventListener = {
   _enabled: true,
   _handleTopLevel: null,
 
-  WINDOW_HANDLE: ExecutionEnvironment.canUseDOM ? window : null,
-
   setHandleTopLevel: function(handleTopLevel) {
     ReactEventListener._handleTopLevel = handleTopLevel;
   },
@@ -128,7 +125,7 @@ var ReactEventListener = {
   /**
    * Traps top-level events by using event bubbling.
    *
-   * @param {string} topLevelType Record from `EventConstants`.
+   * @param {string} topLevelType Record from `BrowserEventConstants`.
    * @param {string} handlerBaseName Event name (e.g. "click").
    * @param {object} element Element on which to attach listener.
    * @return {?object} An object with a remove function which will forcefully
@@ -149,7 +146,7 @@ var ReactEventListener = {
   /**
    * Traps a top-level event by using event capturing.
    *
-   * @param {string} topLevelType Record from `EventConstants`.
+   * @param {string} topLevelType Record from `BrowserEventConstants`.
    * @param {string} handlerBaseName Event name (e.g. "click").
    * @param {object} element Element on which to attach listener.
    * @return {?object} An object with a remove function which will forcefully

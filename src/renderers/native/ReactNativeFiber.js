@@ -12,15 +12,18 @@
 
 'use strict';
 
+const ReactFiberErrorLogger = require('ReactFiberErrorLogger');
 const ReactFiberReconciler = require('ReactFiberReconciler');
 const ReactGenericBatching = require('ReactGenericBatching');
 const ReactNativeAttributePayload = require('ReactNativeAttributePayload');
 const ReactNativeComponentTree = require('ReactNativeComponentTree');
+const ReactNativeFiberErrorDialog = require('ReactNativeFiberErrorDialog');
 const ReactNativeFiberHostComponent = require('ReactNativeFiberHostComponent');
 const ReactNativeInjection = require('ReactNativeInjection');
 const ReactNativeTagHandles = require('ReactNativeTagHandles');
 const ReactNativeViewConfigRegistry = require('ReactNativeViewConfigRegistry');
 const ReactPortal = require('ReactPortal');
+const ReactVersion = require('ReactVersion');
 const UIManager = require('UIManager');
 
 const deepFreezeAndThrowOnMutationInDev = require('deepFreezeAndThrowOnMutationInDev');
@@ -69,25 +72,43 @@ const NativeRenderer = ReactFiberReconciler({
     parentInstance: Instance | Container,
     child: Instance | TextInstance,
   ): void {
+    const childTag = typeof child === 'number' ? child : child._nativeTag;
+
     if (typeof parentInstance === 'number') {
       // Root container
       UIManager.setChildren(
         parentInstance, // containerTag
-        [(child: any)._nativeTag], // reactTags
+        [childTag], // reactTags
       );
     } else {
       const children = parentInstance._children;
 
-      children.push(child);
+      const index = children.indexOf(child);
 
-      UIManager.manageChildren(
-        parentInstance._nativeTag, // containerTag
-        [], // moveFromIndices
-        [], // moveToIndices
-        [(child: any)._nativeTag], // addChildReactTags
-        [children.length - 1], // addAtIndices
-        [], // removeAtIndices
-      );
+      if (index >= 0) {
+        children.splice(index, 1);
+        children.push(child);
+
+        UIManager.manageChildren(
+          parentInstance._nativeTag, // containerTag
+          [index], // moveFromIndices
+          [children.length - 1], // moveToIndices
+          [], // addChildReactTags
+          [], // addAtIndices
+          [], // removeAtIndices
+        );
+      } else {
+        children.push(child);
+
+        UIManager.manageChildren(
+          parentInstance._nativeTag, // containerTag
+          [], // moveFromIndices
+          [], // moveToIndices
+          [childTag], // addChildReactTags
+          [children.length - 1], // addAtIndices
+          [], // removeAtIndices
+        );
+      }
     }
   },
 
@@ -138,7 +159,7 @@ const NativeRenderer = ReactFiberReconciler({
     );
 
     UIManager.updateView(
-      (instance: any)._nativeTag, // reactTag
+      instance._nativeTag, // reactTag
       viewConfig.uiViewClassName, // viewName
       updatePayload, // props
     );
@@ -219,9 +240,9 @@ const NativeRenderer = ReactFiberReconciler({
     // Either way we need to pass a copy of the Array to prevent it from being frozen.
     const nativeTags = parentInstance._children.map(
       child =>
-        typeof child === 'number'
+        (typeof child === 'number'
           ? child // Leaf node (eg text)
-          : child._nativeTag,
+          : child._nativeTag),
     );
 
     UIManager.setChildren(
@@ -260,12 +281,12 @@ const NativeRenderer = ReactFiberReconciler({
 
     const children = (parentInstance: any)._children;
 
-    const beforeChildIndex = children.indexOf(beforeChild);
     const index = children.indexOf(child);
 
     // Move existing child or add new child?
     if (index >= 0) {
       children.splice(index, 1);
+      const beforeChildIndex = children.indexOf(beforeChild);
       children.splice(beforeChildIndex, 0, child);
 
       UIManager.manageChildren(
@@ -277,13 +298,16 @@ const NativeRenderer = ReactFiberReconciler({
         [], // removeAtIndices
       );
     } else {
+      const beforeChildIndex = children.indexOf(beforeChild);
       children.splice(beforeChildIndex, 0, child);
+
+      const childTag = typeof child === 'number' ? child : child._nativeTag;
 
       UIManager.manageChildren(
         (parentInstance: any)._nativeTag, // containerID
         [], // moveFromIndices
         [], // moveToIndices
-        [(child: any)._nativeTag], // addChildReactTags
+        [childTag], // addChildReactTags
         [beforeChildIndex], // addAtIndices
         [], // removeAtIndices
       );
@@ -373,8 +397,15 @@ ReactGenericBatching.injection.injectFiberBatchedUpdates(
 const roots = new Map();
 
 findNodeHandle.injection.injectFindNode((fiber: Fiber) =>
-  NativeRenderer.findHostInstance(fiber));
+  NativeRenderer.findHostInstance(fiber),
+);
 findNodeHandle.injection.injectFindRootNodeID(instance => instance);
+
+// Intercept lifecycle errors and ensure they are shown with the correct stack
+// trace within the native redbox component.
+ReactFiberErrorLogger.injection.injectDialog(
+  ReactNativeFiberErrorDialog.showDialog,
+);
 
 const ReactNative = {
   // External users of findNodeHandle() expect the host tag number return type.
@@ -434,6 +465,9 @@ if (typeof injectInternals === 'function') {
   injectInternals({
     findFiberByHostInstance: ReactNativeComponentTree.getClosestInstanceFromNode,
     findHostInstanceByFiber: NativeRenderer.findHostInstance,
+    // This is an enum because we may add more (e.g. profiler build)
+    bundleType: __DEV__ ? 1 : 0,
+    version: ReactVersion,
   });
 }
 
