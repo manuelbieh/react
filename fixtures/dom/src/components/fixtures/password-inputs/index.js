@@ -1,12 +1,12 @@
-const React = window.React;
-
 import FixtureSet from '../../FixtureSet';
 import TestCase from '../../TestCase';
-import PasswordTestCase from './PasswordTestCase'
+import PasswordTestCase from './PasswordTestCase';
+
+const React = window.React;
 
 function NumberInputs() {
   return (
-    <FixtureSet title="Password inputs" description="">
+    <FixtureSet title="Password inputs">
       <TestCase
         title="The show password icon"
         description={`
@@ -15,7 +15,7 @@ function NumberInputs() {
         `}
         affectedBrowsers="IE Edge, IE 11">
         <TestCase.Steps>
-          <li>Type any string (not an actual password</li>
+          <li>Type any string (not an actual password)</li>
         </TestCase.Steps>
 
         <TestCase.ExpectedResult>

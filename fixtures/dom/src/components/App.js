@@ -1,16 +1,14 @@
-const React = window.React;
 import Header from './Header';
 import Fixtures from './fixtures';
-
 import '../style.css';
 
-function App () {
+const React = window.React;
+
+function App() {
   return (
     <div>
       <Header />
-      <div className="container" >
-        <Fixtures />
-      </div>
+      <Fixtures />
     </div>
   );
 }

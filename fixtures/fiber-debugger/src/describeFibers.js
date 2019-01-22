@@ -37,6 +37,23 @@ function getFriendlyTag(tag) {
   }
 }
 
+function getFriendlyEffect(effectTag) {
+  const effects = {
+    1: 'Performed Work',
+    2: 'Placement',
+    4: 'Update',
+    8: 'Deletion',
+    16: 'Content reset',
+    32: 'Callback',
+    64: 'Err',
+    128: 'Ref',
+  };
+  return Object.keys(effects)
+    .filter(flag => flag & effectTag)
+    .map(flag => effects[flag])
+    .join(' & ');
+}
+
 export default function describeFibers(rootFiber, workInProgress) {
   let descriptions = {};
   function acknowledgeFiber(fiber) {
@@ -55,7 +72,8 @@ export default function describeFibers(rootFiber, workInProgress) {
       ...fiber,
       id: id,
       tag: getFriendlyTag(fiber.tag),
-      type: (fiber.type && ('<' + (fiber.type.name || fiber.type) + '>')),
+      effectTag: getFriendlyEffect(fiber.effectTag),
+      type: fiber.type && '<' + (fiber.type.name || fiber.type) + '>',
       stateNode: `[${typeof fiber.stateNode}]`,
       return: acknowledgeFiber(fiber.return),
       child: acknowledgeFiber(fiber.child),
@@ -63,9 +81,6 @@ export default function describeFibers(rootFiber, workInProgress) {
       nextEffect: acknowledgeFiber(fiber.nextEffect),
       firstEffect: acknowledgeFiber(fiber.firstEffect),
       lastEffect: acknowledgeFiber(fiber.lastEffect),
-      progressedChild: acknowledgeFiber(fiber.progressedChild),
-      progressedFirstDeletion: acknowledgeFiber(fiber.progressedFirstDeletion),
-      progressedLastDeletion: acknowledgeFiber(fiber.progressedLastDeletion),
       alternate: acknowledgeFiber(fiber.alternate),
     });
     return id;
@@ -75,22 +90,22 @@ export default function describeFibers(rootFiber, workInProgress) {
   const workInProgressID = acknowledgeFiber(workInProgress);
 
   let currentIDs = new Set();
-  function markAsCurent(id) {
+  function markAsCurrent(id) {
     currentIDs.add(id);
     const fiber = descriptions[id];
     if (fiber.sibling) {
-      markAsCurent(fiber.sibling);
+      markAsCurrent(fiber.sibling);
     }
     if (fiber.child) {
-      markAsCurent(fiber.child);
+      markAsCurrent(fiber.child);
     }
   }
-  markAsCurent(rootID);
+  markAsCurrent(rootID);
 
   return {
     descriptions,
     rootID,
     currentIDs: Array.from(currentIDs),
-    workInProgressID
+    workInProgressID,
   };
 }
